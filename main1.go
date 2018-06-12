@@ -41,10 +41,10 @@ func checkSignature(w http.ResponseWriter, r *http.Request) {
 	tmpStr := tmps[0] + tmps[1] + tmps[2]
 	tmp := str2sha1(tmpStr)
 	if tmp == signature {
-		log.Println("signature is OK")
+		log.Println("signature check success")
 		fmt.Fprintf(w, echostr)
 	} else{
-		log.Println("signature is fail")
+		log.Println("signature check fail")
 	}
 
 }
