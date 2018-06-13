@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"log"
+	"strings"
 
 	"github.com/silenceper/wechat"	//go get github.com/silenceper/wechat 执行后才能运行
 	"github.com/silenceper/wechat/message"
@@ -27,9 +28,20 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 
 		//回复消息：演示回复用户发送的消息
 		// text := message.NewText(msg.Content)
+		// return_message := "你好呀"
 
-		text := message.NewText("你好呀")
-		log.Println("用户信息：" + msg.Content)	//打印日志信息
+		// var msg_content string
+		var split_message []string
+		var return_message string
+
+	 	// msg_content = string(msg.Content)
+		split_message = strings.Split(msg.Content, " ")	//以空格为标志分解用户信息
+		return_message = "动作标志：" + split_message[0] + "\n附带信息：" + split_message[1]	//生成回复信息
+		
+
+		text := message.NewText(return_message)
+		log.Println("用户信息<-：" + msg.Content)		//打印日志信息
+		log.Println("返回信息->：" + return_message)	//打印日志信息
 		return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
 	})
 
