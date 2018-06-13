@@ -14,41 +14,41 @@ import (
 )
 
 //以 []string 形式返回一行数据，并将指针移到下一行
-// func GetOne(rows *sql.Rows) []string {
-// 	if rows == nil {
-// 		return nil
-// 	}
+func GetOne(rows *sql.Rows) []string {
+	if rows == nil {
+		return nil
+	}
 
-// 	cols, err := rows.Columns()
+	cols, err := rows.Columns()
 
-// 	rawResult := make([][]byte, len(cols))
-// 	result := make([]string, len(cols))
-// 	dest := make([]interface{}, len(cols))
-// 	for i, _ := range rawResult {
-// 		dest[i] = &rawResult[i]
-// 	}
+	rawResult := make([][]byte, len(cols))
+	result := make([]string, len(cols))
+	dest := make([]interface{}, len(cols))
+	for i, _ := range rawResult {
+		dest[i] = &rawResult[i]
+	}
 
-// 	if rows.Next() {
-// 		err = rows.Scan(dest...)
+	if rows.Next() {
+		err = rows.Scan(dest...)
 
-// 		for i, raw := range rawResult {
-// 			if raw == nil {
-// 				result[i] = ""
-// 			} else {
-// 				result[i] = string(raw)
-// 			}
-// 		}
+		for i, raw := range rawResult {
+			if raw == nil {
+				result[i] = ""
+			} else {
+				result[i] = string(raw)
+			}
+		}
 
-// 		//fmt.Printf("%#v\n", result)
+		//fmt.Printf("%#v\n", result)
 
-// 		//break
-// 	} else {
-// 		return nil
-// 	}
+		//break
+	} else {
+		return nil
+	}
 
-// 	_ = err
-// 	return result
-// }
+	_ = err
+	return result
+}
 
 func hello(rw http.ResponseWriter, req *http.Request) {
 
@@ -105,18 +105,29 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 			id := split_message[1]     //学号
 			openid := msg.FromUserName //openid
 
-			sql := "INSERT INTO `wx`.`user` (`id`, `openid`) VALUES ('" + id + "', '" + openid + "');"
+			//查询 student 表是否存在此学号
+			sql := "SELECT * FROM  `student` WHERE  `id` =  '" + id + "'"
 			rows, err := db.Query(sql)
 			_ = rows
 			_ = err
-			// if err != nil {
-			// 	fmt.Println("db.Query(sql) 执行发生错误:", err.Error())
-			// }
+			
+			if GetOne(rows) == nil {
+				return_message += "\n\n学生名单不存在此学号"
+			} else {
+				//将 学号 和 openid 添加到 user 表
+				sql = "INSERT INTO `wx`.`user` (`id`, `openid`) VALUES ('" + id + "', '" + openid + "');"
+				rows, err = db.Query(sql)
 
-			if err == nil {
-				return_message += "\n\n绑定学号成功。"
-			}else if strings.Contains(err.Error(), "Error 1062: Duplicate entry") {
-				return_message += "\n\n此学号已经绑定过"
+				// if err != nil {
+				// 	fmt.Println("db.Query(sql) 执行发生错误:", err.Error())
+				// }
+				
+				//未发生错误表示添加成功
+				if err == nil {
+					return_message += "\n\n绑定学号成功。"
+				} else if strings.Contains(err.Error(), "Error 1062: Duplicate entry") { //错误提示:主键重复。表示记录已经存在
+					return_message += "\n\n此学号已经绑定过"
+				}
 			}
 		}
 
