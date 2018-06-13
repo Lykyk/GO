@@ -110,12 +110,12 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 			rows, err := db.Query(sql)
 			_ = rows
 			_ = err
-			
+
 			if GetOne(rows) == nil {
 				return_message += "\n\n学生名单不存在此学号"
 			} else {
 				//将 学号 和 openid 添加到 user 表
-				sql = "INSERT INTO `wx`.`user` (`id`, `openid`) VALUES ('" + id + "', '" + openid + "');"
+				sql = "INSERT INTO `wx`.`user` (`openid`, `id`) VALUES ('" + openid + "', '" + id + "');"
 				rows, err = db.Query(sql)
 
 				// if err != nil {
@@ -126,10 +126,11 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 				if err == nil {
 					return_message += "\n\n绑定学号成功。"
 				} else if strings.Contains(err.Error(), "Error 1062: Duplicate entry") { //错误提示:主键重复。表示记录已经存在
-					return_message += "\n\n此学号已经绑定过"
+					return_message += "\n\n此微信号已经绑定过"
 				}
 			}
 		}
+		
 
 		// db.Close()
 		log.Println("回复信息->：" + return_message) //打印日志信息:回复给用户的信息
