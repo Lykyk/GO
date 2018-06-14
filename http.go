@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"math/rand"
+	"time"
 
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
@@ -73,6 +75,11 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 		// var msg_content string
 		var split_message []string
 		var return_message string
+		var sql_str string		//SQL 语句
+		var rows *sql.Rows
+		var err error
+		var row []string	//SQL 查询行数据
+		_ = row
 
 		// log.Println("openid =", msg.FromUserName)		//打印日志信息
 		log.Println("用户信息<-：" + msg.Content) //打印日志信息:用户发送的信息
@@ -87,7 +94,7 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 		// rows, err := db.Query("select * from student")
 		// fmt.Println(err)
 		// for i:=0; i<30; i++{
-		// 	row := GetOne(rows)
+		// 	row = GetOne(rows)
 		// 	log.Println(row[0] + " " + row[1])	//输出
 		// }
 
@@ -101,13 +108,14 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 		//生成回复信息
 		return_message = "openid = " + msg.FromUserName + "\n动作标志：" + split_message[0] + "\n附带信息：" + split_message[1]
 
+		//绑定学号
 		if split_message[0] == "BDXH" {
 			id := split_message[1]     //学号
 			openid := msg.FromUserName //openid
 
 			//查询 student 表是否存在此学号
-			sql := "SELECT * FROM  `student` WHERE  `id` =  '" + id + "'"
-			rows, err := db.Query(sql)
+			sql_str = "SELECT * FROM  `student` WHERE  `id` =  '" + id + "'"
+			rows, err = db.Query(sql_str)
 			_ = rows
 			_ = err
 
@@ -115,8 +123,8 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 				return_message += "\n\n学生名单不存在此学号"
 			} else {
 				//将 学号 和 openid 添加到 user 表
-				sql = "INSERT INTO `wx`.`user` (`openid`, `id`) VALUES ('" + openid + "', '" + id + "');"
-				rows, err = db.Query(sql)
+				sql_str = "INSERT INTO `wx`.`user` (`openid`, `id`) VALUES ('" + openid + "', '" + id + "');"
+				rows, err = db.Query(sql_str)
 
 				// if err != nil {
 				// 	fmt.Println("db.Query(sql) 执行发生错误:", err.Error())
@@ -130,6 +138,42 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 				}
 			}
 		}
+
+		var true_code string //实际签到码
+		//开始签到,生成签到码
+		if split_message[0] == "KSQD" && msg.FromUserName == "oT_d3096S2XEn34jDGUbbqRCf0ng" {
+			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+			true_code = fmt.Sprintf("%06v", rnd.Int31n(1000000))	//生成实际签到码
+			// fmt.Println("实际签到码:", true_code)
+
+			sql_str = "UPDATE `acode` SET `code`='" + true_code + "' WHERE 1"
+			rows, err = db.Query(sql_str)
+
+			return_message += "\n\n签到码：" + true_code
+		}
+
+		// 签到
+		if split_message[0] == "QD" {
+			user_code := split_message[1] //用户发送的签到码
+			sql_str = "SELECT * FROM  `acode` LIMIT 0 , 1"
+			rows, err = db.Query(sql_str)
+			_ = rows
+			_ = err
+
+			row = GetOne(rows)
+			true_code = row[0]
+
+			if user_code == true_code {
+				
+
+				//将签到时间与写入签到表
+
+				return_message += "\n\n签到成功"
+			} else {
+				return_message += "\n\n签到码不正确"
+			}
+		}
+
 		
 
 		// db.Close()
