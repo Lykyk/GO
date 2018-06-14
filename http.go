@@ -80,6 +80,9 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 		var err error
 		var row []string	//SQL 查询行数据
 		_ = row
+		var true_code string //实际签到码
+		_ = true_code
+
 
 		// log.Println("openid =", msg.FromUserName)		//打印日志信息
 		log.Println("用户信息<-：" + msg.Content) //打印日志信息:用户发送的信息
@@ -108,8 +111,8 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 		//生成回复信息
 		return_message = "openid = " + msg.FromUserName + "\n动作标志：" + split_message[0] + "\n附带信息：" + split_message[1]
 
-		//绑定学号
 		if split_message[0] == "BDXH" {
+			/*绑定学号*/
 			id := split_message[1]     //学号
 			openid := msg.FromUserName //openid
 
@@ -137,11 +140,9 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 					return_message += "\n\n此微信号已经绑定过"
 				}
 			}
-		}
+		} else if split_message[0] == "KSQD" && msg.FromUserName == "oT_d3096S2XEn34jDGUbbqRCf0ng" {	//只有特定用户可以生成签到码
+			/*开始签到,生成签到码*/
 
-		var true_code string //实际签到码
-		//开始签到,生成签到码
-		if split_message[0] == "KSQD" && msg.FromUserName == "oT_d3096S2XEn34jDGUbbqRCf0ng" {
 			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 			true_code = fmt.Sprintf("%06v", rnd.Int31n(1000000))	//生成实际签到码
 			// fmt.Println("实际签到码:", true_code)
@@ -150,31 +151,34 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 			rows, err = db.Query(sql_str)
 
 			return_message += "\n\n签到码：" + true_code
-		}
 
-		// 签到
-		if split_message[0] == "QD" {
+		} else if split_message[0] == "QD" {
+			/*签到*/
 			user_code := split_message[1] //用户发送的签到码
 			sql_str = "SELECT * FROM  `acode` LIMIT 0 , 1"
 			rows, err = db.Query(sql_str)
 			_ = rows
 			_ = err
-
 			row = GetOne(rows)
-			true_code = row[0]
-
+			true_code = row[0] //实际签到码
+			
+			
+			//验证签到码
 			if user_code == true_code {
-				
-
-				//将签到时间与写入签到表
-
-				return_message += "\n\n签到成功"
+				//将签到时间与openid写入签到表
+				sql_str = "INSERT INTO `wx`.`attendence` (`openid`, `atime`) VALUES ('" + msg.FromUserName + "', CURRENT_TIMESTAMP);"
+				rows, err = db.Query(sql_str)
+				if err == nil {
+					return_message += "\n\n签到成功"
+				} else {
+					return_message += "\n\n签到失败"
+					fmt.Println(err.Error())
+				}
 			} else {
 				return_message += "\n\n签到码不正确"
 			}
 		}
 
-		
 
 		// db.Close()
 		log.Println("回复信息->：" + return_message) //打印日志信息:回复给用户的信息
