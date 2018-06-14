@@ -140,16 +140,20 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 					return_message += "\n\n此微信号已经绑定过"
 				}
 			}
-		} else if split_message[0] == "KSQD" && msg.FromUserName == "oT_d3096S2XEn34jDGUbbqRCf0ng" {	//只有特定用户可以生成签到码
+		} else if split_message[0] == "KSQD" && msg.FromUserName == "oT_d3096S2XEn34jDGUbbqRCf0ng" { //只有特定用户可以生成签到码
 			/*开始签到,生成签到码*/
 
 			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 			true_code = fmt.Sprintf("%06v", rnd.Int31n(1000000))	//生成实际签到码
 			// fmt.Println("实际签到码:", true_code)
 
-			sql_str = "UPDATE `acode` SET `code`='" + true_code + "' WHERE 1"
+			//将签到码存到表中,并记录生成时间
+			sql_str = "UPDATE `acode` SET `code`='" + true_code + "', `start_time` = CURRENT_TIMESTAMP WHERE 1"
 			rows, err = db.Query(sql_str)
-
+			// if err != nil{
+			// 	fmt.Println(err.Error())
+			// }
+			
 			return_message += "\n\n签到码：" + true_code
 
 		} else if split_message[0] == "QD" {
@@ -176,6 +180,22 @@ func hello(rw http.ResponseWriter, req *http.Request) {
 				}
 			} else {
 				return_message += "\n\n签到码不正确"
+			}
+
+		} else if split_message[0] == "QQ" {
+			/*缺勤*/
+			sql_str = "SELECT * FROM `student` WHERE `student`.`id` IN (SELECT `user`.`id` FROM `user` WHERE `user`.`openid` NOT IN (SELECT `openid` FROM `attendence`))"
+			rows, err = db.Query(sql_str)
+
+			if rows != nil {
+				return_message += "\n\n缺勤名单："
+				for {
+					row := GetOne(rows)
+					if row == nil {
+						break
+					}
+					return_message += "\n" + row[0] + " " + row[1]
+				}
 			}
 		}
 
