@@ -31,10 +31,10 @@ func str2sha1(data string) string {
 
 func checkSignature(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	var token string = "baixuewuyaak47"
+	var token string = "baixuewuyaak47"//Token
 	var signature string = strings.Join(r.Form["signature"], "")
 	var timestamp string = strings.Join(r.Form["timestamp"], "")
-	var nonce string = strings.Join(r.Form["nonce"], "")
+	var nonce string = strings.Join(r.Form["nonce"], "")//随机数
 	var echostr string = strings.Join(r.Form["echostr"], "")
 	tmps := []string{token, timestamp, nonce}
 	sort.Strings(tmps)
